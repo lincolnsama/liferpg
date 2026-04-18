@@ -1,0 +1,76 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 主题：由 CosmeticRoot 设置 html[data-theme] */
+html[data-theme="cyber"] {
+  --app-accent: 34 211 238;
+  --app-accent-dim: 8 145 178;
+}
+html[data-theme="forest"] {
+  --app-accent: 52 211 153;
+  --app-accent-dim: 5 150 105;
+}
+html[data-theme="samurai"] {
+  --app-accent: 248 113 113;
+  --app-accent-dim: 220 38 38;
+}
+html[data-theme="mage"] {
+  --app-accent: 192 132 252;
+  --app-accent-dim: 147 51 234;
+}
+
+@keyframes focus-rain-drift {
+  from {
+    background-position: 0 0;
+  }
+  to {
+    background-position: 0 220px;
+  }
+}
+
+.focus-bg-rain {
+  position: relative;
+  overflow: hidden;
+}
+.focus-bg-rain::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  opacity: 0.18;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    180deg,
+    transparent,
+    transparent 3px,
+    rgba(255, 255, 255, 0.06) 4px
+  );
+  animation: focus-rain-drift 5s linear infinite;
+}
+
+@keyframes focus-twinkle {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 0.65;
+  }
+}
+
+.focus-bg-stars {
+  position: relative;
+  overflow: hidden;
+}
+.focus-bg-stars::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: radial-gradient(1px 1px at 10% 20%, white, transparent),
+    radial-gradient(1px 1px at 70% 40%, white, transparent),
+    radial-gradient(1px 1px at 30% 80%, white, transparent),
+    radial-gradient(1px 1px at 85% 75%, white, transparent);
+  opacity: 0.35;
+  animation: focus-twinkle 4s ease-in-out infinite;
+}
