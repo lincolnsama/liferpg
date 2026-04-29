@@ -33,6 +33,57 @@ import { defaultSkillTreeProgress, type SkillTreeProgress } from "@/types/skill-
 
 export type { SkillTreeProgress };
 
+export type SkillNextStep = {
+  atCap: boolean;
+  nextNodeName: string;
+  segmentStart: number;
+  segmentEnd: number;
+  /** 0–1 within current segment */
+  progressRatio: number;
+  xpRemainToNext: number;
+  explanation: string;
+};
+
+/** 解释当前累计 XP 与下一技能节点的关系（主职业同系任务 ×1.5 在任务结算中已计入累计值）。 */
+export function skillTreeNextStep(
+  profession: Profession,
+  professionXp: number,
+  unlockedTier: number
+): SkillNextStep {
+  const tree = SKILL_TREES.find((t) => t.profession === profession);
+  const maxTier = SKILL_XP_THRESHOLDS.length;
+  if (!tree || unlockedTier >= maxTier) {
+    return {
+      atCap: true,
+      nextNodeName: "",
+      segmentStart: SKILL_XP_THRESHOLDS[maxTier - 1] ?? 0,
+      segmentEnd: SKILL_XP_THRESHOLDS[maxTier - 1] ?? 0,
+      progressRatio: 1,
+      xpRemainToNext: 0,
+      explanation: "本职业树已全部点亮；继续完成任务仍可累积该职业 XP，用于未来扩展。"
+    };
+  }
+  const prev = unlockedTier <= 0 ? 0 : SKILL_XP_THRESHOLDS[unlockedTier - 1];
+  const next = SKILL_XP_THRESHOLDS[unlockedTier];
+  const span = Math.max(1, next - prev);
+  const ratio = Math.min(1, Math.max(0, (professionXp - prev) / span));
+  const nextNode = tree.nodes[unlockedTier];
+  const remain = Math.max(0, next - professionXp);
+  return {
+    atCap: false,
+    nextNodeName: nextNode?.name ?? "下一节点",
+    segmentStart: prev,
+    segmentEnd: next,
+    progressRatio: ratio,
+    xpRemainToNext: remain,
+    explanation: `当前累计 ${professionXp} XP（已含主职业 ×1.5 加成带来的增量）。再获得约 ${remain} XP 可解锁「${nextNode?.name ?? "下一节点"}」（阈值 ${next}）。`
+  };
+}
+
+export function explainLastSkillUnlock(last: NonNullable<SkillTreeProgress["lastUnlock"]>): string {
+  return `最近一次点亮「${last.nodeName}」来自 ${last.profession} 树第 ${last.tier} 层：你在任务结算时，该职业累计 XP 跨过了阈值。继续完成同职业任务会最快逼近下一节点。`;
+}
+
 /** 各职业累计 XP 阈值（达到第 i 项则解锁第 i+1 个节点） */
 export const SKILL_XP_THRESHOLDS = [50, 150, 320, 560, 900] as const;
 

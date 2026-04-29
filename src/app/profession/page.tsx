@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import AppShell from "@/components/app-shell";
+import { MvpPageHeader } from "@/components/mvp-page-header";
 import { PROFESSIONS } from "@/lib/constants";
 import { createClient } from "@/lib/supabase-browser";
 import type { Profession } from "@/types/db";
@@ -43,9 +44,9 @@ export default function ProfessionPage() {
 
   return (
     <AppShell>
+      <MvpPageHeader title="职业" description="职业决定任务的成长方向，与技能树联动；可随时切换。" />
       <section className="card">
-        <h2 className="mb-1 text-lg font-semibold">选择你的职业</h2>
-        <p className="mb-5 text-sm text-slate-400">职业决定你任务的成长方向，可随时切换。</p>
+        <h2 className="mb-4 text-base font-semibold text-slate-200">选择主职业</h2>
 
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {PROFESSIONS.map((profession) => (

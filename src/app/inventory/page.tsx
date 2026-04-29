@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import AppShell from "@/components/app-shell";
+import { MvpPageHeader } from "@/components/mvp-page-header";
 import { getGearDef, itemFromGearDef, type GearDef } from "@/lib/equipment-catalog";
 import {
   consumeFocusPotionFromStash,
@@ -114,15 +115,15 @@ export default function InventoryPage() {
 
   return (
     <AppShell>
-      <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-        <div>
-          <h1 className="text-xl font-semibold text-slate-100">装备与背包</h1>
-          <p className="mt-1 text-sm text-slate-400">点击剪影上的槽位或下方背包条目查看详情、装备 / 卸下。</p>
-        </div>
-        <Link href="/shop" className="rounded-lg border border-cyan-700/50 px-3 py-2 text-sm text-cyan-200 hover:bg-cyan-500/10">
-          去商店 →
-        </Link>
-      </div>
+      <MvpPageHeader
+        title="装备与背包"
+        description="点击剪影槽位或下方背包条目查看详情、装备或卸下。"
+        actions={
+          <Link href="/shop" className="rounded-lg border border-cyan-700/50 px-3 py-2 text-sm text-cyan-200 hover:bg-cyan-500/10">
+            去商店 →
+          </Link>
+        }
+      />
 
       <div className="grid gap-6 lg:grid-cols-2">
         <section className="card relative min-h-[320px] overflow-hidden">

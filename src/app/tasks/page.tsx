@@ -3,9 +3,12 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { FormEvent, MouseEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import AppShell from "@/components/app-shell";
+import { MvpPageHeader } from "@/components/mvp-page-header";
 import CelebrationOverlay from "@/components/celebration-overlay";
 import XpBar from "@/components/xp-bar";
 import { PROFESSIONS } from "@/lib/constants";
+import { hydrateDayLoopFromServerCache } from "@/lib/batch1-supabase-sync";
+import { loadDailyMainQuest } from "@/lib/daily-main-quest";
 import { createClient } from "@/lib/supabase-browser";
 import { getLevelFromXp, getLevelProgress } from "@/lib/utils";
 import {
@@ -15,7 +18,8 @@ import {
   Difficulty,
   Profession,
   Task,
-  type TaskMode
+  type TaskMode,
+  type TaskTrack
 } from "@/types/db";
 import {
   computeFinalTaskRewards,
@@ -223,6 +227,7 @@ export default function TasksPage() {
     difficulty: Difficulty;
   } | null>(null);
   const [listTick, setListTick] = useState(0);
+  const [taskTrack, setTaskTrack] = useState<TaskTrack>("side");
 
   const detectDifficulty = (taskTitle: string): Difficulty => {
     const t = taskTitle.trim();
@@ -276,9 +281,13 @@ export default function TasksPage() {
 
     const { data: profileData } = await supabase
       .from("profiles")
-      .select("id, xp, crystals, profession")
+      .select("id, xp, crystals, profession, day_loop_cache")
       .eq("id", user.id)
       .single();
+
+    hydrateDayLoopFromServerCache(
+      (profileData as { day_loop_cache?: unknown } | null)?.day_loop_cache ?? null
+    );
 
     const { data: taskData } = await supabase
       .from("tasks")
@@ -305,7 +314,14 @@ export default function TasksPage() {
     const params = new URLSearchParams(window.location.search);
     if (params.get("mode") !== "quick") return;
     setCreateMode("focus");
-    setActionNotice("晨间仪式已就绪：直接创建今日首个任务吧。");
+    setTaskTrack("main");
+    const dailyMainQuest = loadDailyMainQuest();
+    if (dailyMainQuest?.title) {
+      setTitle((prev) => (prev.trim() ? prev : `主线推进：${dailyMainQuest.title}`));
+      setActionNotice(`晨间仪式已就绪：今日主线「${dailyMainQuest.title}」，先拆成第一个可执行任务。`);
+    } else {
+      setActionNotice("晨间仪式已就绪：直接创建今日首个任务吧。");
+    }
     setTimeout(() => titleInputRef.current?.focus(), 80);
   }, []);
 
@@ -459,7 +475,8 @@ export default function TasksPage() {
       task_mode: "focus" as const,
       focus_ready: false,
       explore_coma: false,
-      early_complete: false
+      early_complete: false,
+      task_track: taskTrack
     };
 
     const briefing = buildTaskBriefing({
@@ -499,7 +516,8 @@ export default function TasksPage() {
       task_mode: "log" as const,
       focus_ready: false,
       explore_coma: false,
-      early_complete: false
+      early_complete: false,
+      task_track: taskTrack
     };
 
     const { error } = await supabase.from("tasks").insert(insertPayload).select("*").maybeSingle();
@@ -998,6 +1016,7 @@ export default function TasksPage() {
     setTitle(taskName);
     setProfession(taskProfession);
     setDifficultyOffset(0);
+    setTaskTrack("daily");
   };
 
   const pickRandomTask = () => {
@@ -1006,7 +1025,17 @@ export default function TasksPage() {
     const randomTask = candidates[Math.floor(Math.random() * candidates.length)];
     setTitle(randomTask);
     setDifficultyOffset(0);
+    setTaskTrack("daily");
   };
+
+  const sortedTasks = useMemo(() => {
+    const rank = (t: Task) => {
+      if (t.task_track === "main") return 0;
+      if (t.task_track === "side") return 1;
+      return 2;
+    };
+    return [...tasks].sort((a, b) => rank(a) - rank(b));
+  }, [tasks]);
 
   if (!profile) {
     return (
@@ -1018,6 +1047,10 @@ export default function TasksPage() {
 
   return (
     <AppShell>
+      <MvpPageHeader
+        title="今日任务"
+        description="先定主线与支线，再选专注或事后记录；完成一场即可推进今日闭环。"
+      />
       <CelebrationOverlay show={showCelebration} />
       <AnimatePresence>
         {briefingOpen && pendingBriefing && (
@@ -1220,6 +1253,30 @@ export default function TasksPage() {
 
       <section className="card mb-6">
         <h2 className="mb-4 text-lg font-semibold">添加任务</h2>
+        <p className="mb-2 text-xs text-slate-500">先选任务性质，再选专注或记账模式。</p>
+        <div className="mb-4 flex flex-wrap gap-2">
+          {(
+            [
+              { id: "main" as const, label: "今日主线", sub: "今天最重要的一战" },
+              { id: "side" as const, label: "支线推进", sub: "有价值但非胜负手" },
+              { id: "daily" as const, label: "日常维护", sub: "节律、健康、整理" }
+            ] as const
+          ).map((opt) => (
+            <button
+              key={opt.id}
+              type="button"
+              onClick={() => setTaskTrack(opt.id)}
+              className={`rounded-xl border px-3 py-2 text-left text-xs transition ${
+                taskTrack === opt.id
+                  ? "border-amber-400/80 bg-amber-500/15 text-amber-100"
+                  : "border-slate-700 bg-slate-900/50 text-slate-400 hover:border-slate-500"
+              }`}
+            >
+              <span className="font-semibold text-slate-100">{opt.label}</span>
+              <span className="mt-0.5 block text-[10px] text-slate-500">{opt.sub}</span>
+            </button>
+          ))}
+        </div>
         <p className="mb-4 text-xs text-slate-400">
           选择模式：<span className="text-amber-200/90">开始专注</span>需全屏冒险倒计时；<span className="text-emerald-200/90">记录已完成</span>
           跳过探索，填实际耗时后待领取（每日最多 {MAX_LOG_TASKS_PER_DAY} 条，奖励 ×0.8）。专注模式连续 3 次迷宫昏迷将强制休息。
@@ -1380,7 +1437,7 @@ export default function TasksPage() {
         {actionNotice && <p className="mb-3 text-sm text-amber-300">{actionNotice}</p>}
         <div className="space-y-3">
           <AnimatePresence>
-            {tasks.map((task) => {
+            {sortedTasks.map((task) => {
               void listTick;
               const exMode = deriveTaskExploreUiState(task);
               const canClaim = exMode === "ready" || exMode === "coma";
@@ -1409,6 +1466,21 @@ export default function TasksPage() {
                       {typeof task.xp_reward === "number" ? ` · +${task.xp_reward} XP` : ""}
                     </p>
                     <div className="mt-1 flex flex-wrap gap-2">
+                      {task.task_track === "main" && (
+                        <span className="rounded-full border border-amber-500/60 bg-amber-500/10 px-2 py-0.5 text-[10px] text-amber-200">
+                          主线
+                        </span>
+                      )}
+                      {task.task_track === "side" && (
+                        <span className="rounded-full border border-sky-600/50 bg-sky-500/10 px-2 py-0.5 text-[10px] text-sky-200">
+                          支线
+                        </span>
+                      )}
+                      {task.task_track === "daily" && (
+                        <span className="rounded-full border border-slate-600/60 bg-slate-500/10 px-2 py-0.5 text-[10px] text-slate-300">
+                          日常
+                        </span>
+                      )}
                       {isLog && (
                         <span className="rounded-full border border-emerald-600/60 bg-emerald-500/10 px-2 py-0.5 text-[10px] text-emerald-300">
                           事后记录

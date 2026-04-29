@@ -6,7 +6,16 @@ create table if not exists public.profiles (
   nickname text,
   real_job text,
   mbti text,
+  birth_month integer check (birth_month is null or (birth_month >= 1 and birth_month <= 12)),
+  birth_day integer check (birth_day is null or (birth_day >= 1 and birth_day <= 31)),
   constellation text,
+  life_stage text,
+  education text,
+  height_cm numeric,
+  weight_kg numeric,
+  current_challenge text,
+  desired_self text,
+  first_main_quest text,
   race text,
   primary_class text,
   secondary_class text,
@@ -20,7 +29,16 @@ create table if not exists public.profiles (
 alter table public.profiles add column if not exists nickname text;
 alter table public.profiles add column if not exists real_job text;
 alter table public.profiles add column if not exists mbti text;
+alter table public.profiles add column if not exists birth_month integer;
+alter table public.profiles add column if not exists birth_day integer;
 alter table public.profiles add column if not exists constellation text;
+alter table public.profiles add column if not exists life_stage text;
+alter table public.profiles add column if not exists education text;
+alter table public.profiles add column if not exists height_cm numeric;
+alter table public.profiles add column if not exists weight_kg numeric;
+alter table public.profiles add column if not exists current_challenge text;
+alter table public.profiles add column if not exists desired_self text;
+alter table public.profiles add column if not exists first_main_quest text;
 alter table public.profiles add column if not exists race text;
 alter table public.profiles add column if not exists primary_class text;
 alter table public.profiles add column if not exists secondary_class text;
@@ -160,6 +178,61 @@ begin
   return query select v_crystals, v_name, v_quantity;
 end;
 $$;
+
+-- Batch 1: 跨设备每日闭环缓存（主线、推进、晨间/封存 hint）
+alter table public.profiles add column if not exists day_loop_cache jsonb;
+
+-- 任务轨道：主线 / 支线 / 日常（可空，兼容旧数据）
+alter table public.tasks add column if not exists task_track text
+  check (task_track is null or task_track in ('main', 'side', 'daily'));
+
+-- 任务完成奖励流水（可追溯）
+create table if not exists public.reward_events (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  source_type text not null,
+  source_id uuid,
+  xp_delta integer not null default 0,
+  crystals_delta integer not null default 0,
+  meta jsonb,
+  created_at timestamptz not null default now()
+);
+
+-- 每日日志快照（夜间封存与回看；与本地 IndexedDB 并存）
+create table if not exists public.daily_logs (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  log_date date not null,
+  payload jsonb not null,
+  seal_snapshot jsonb,
+  sealed_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (user_id, log_date)
+);
+
+alter table public.reward_events enable row level security;
+alter table public.daily_logs enable row level security;
+
+drop policy if exists "Users read own reward_events" on public.reward_events;
+create policy "Users read own reward_events" on public.reward_events
+for select using (auth.uid() = user_id);
+
+drop policy if exists "Users insert own reward_events" on public.reward_events;
+create policy "Users insert own reward_events" on public.reward_events
+for insert with check (auth.uid() = user_id);
+
+drop policy if exists "Users read own daily_logs" on public.daily_logs;
+create policy "Users read own daily_logs" on public.daily_logs
+for select using (auth.uid() = user_id);
+
+drop policy if exists "Users upsert own daily_logs" on public.daily_logs;
+create policy "Users upsert own daily_logs" on public.daily_logs
+for insert with check (auth.uid() = user_id);
+
+drop policy if exists "Users update own daily_logs" on public.daily_logs;
+create policy "Users update own daily_logs" on public.daily_logs
+for update using (auth.uid() = user_id);
 
 alter table public.profiles enable row level security;
 alter table public.tasks enable row level security;

@@ -5,6 +5,9 @@ export type Difficulty = "Simple" | "Normal" | "Hard";
 /** 专注番茄钟 / 事后记账 */
 export type TaskMode = "focus" | "log";
 
+/** 每日闭环：主线 / 支线 / 日常（可空表示未分类） */
+export type TaskTrack = "main" | "side" | "daily";
+
 export const DIFFICULTY_CRYSTAL_REWARD: Record<Difficulty, number> = {
   Simple: 10,
   Normal: 20,
@@ -51,6 +54,8 @@ export type Task = {
   explore_started_at?: string | null;
   explore_total_seconds?: number | null;
   early_complete?: boolean | null;
+  /** 任务页创建时选的轨道；旧数据为 null */
+  task_track?: TaskTrack | null;
   profession_bonus_applied?: boolean;
   anti_cheat_flag?: boolean;
   is_completed: boolean;

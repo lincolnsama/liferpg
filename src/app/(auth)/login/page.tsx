@@ -5,11 +5,28 @@ import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
 import { createClient } from "@/lib/supabase-browser";
 
+const LOGIN_TIMEOUT_MS = 12000;
+
+async function withTimeout<T>(promise: Promise<T>, ms = LOGIN_TIMEOUT_MS): Promise<T> {
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timeoutId = setTimeout(() => {
+      reject(new Error("登录请求超时：请检查网络、代理或 Supabase 配置后重试"));
+    }, ms);
+  });
+  try {
+    return await Promise.race([promise, timeoutPromise]);
+  } finally {
+    if (timeoutId) clearTimeout(timeoutId);
+  }
+}
+
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [debugState, setDebugState] = useState("idle");
   const [isQuickLogging, setIsQuickLogging] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -22,25 +39,41 @@ export default function LoginPage() {
   const quickLoginTestAccount = async () => {
     setIsQuickLogging(true);
     setError(null);
+    setDebugState("quick_login_clicked");
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
 
     try {
+      timeoutId = setTimeout(() => {
+        setError("登录请求超时：请检查网络、代理或 Supabase 配置后重试");
+        setIsQuickLogging(false);
+        setDebugState("quick_login_timeout");
+      }, LOGIN_TIMEOUT_MS);
+
       const supabase = createClient();
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email: "test@test.com",
-        password: "123456"
-      });
+      setDebugState("quick_login_request_sent");
+      const { error: signInError } = await withTimeout(
+        supabase.auth.signInWithPassword({
+          email: "test@test.com",
+          password: "123456"
+        })
+      );
+      setDebugState("quick_login_response_received");
 
       if (signInError) {
         setError(`测试账号登录失败：${signInError.message}`);
+        setDebugState("quick_login_auth_error");
         return;
       }
 
+      setDebugState("quick_login_success_redirecting");
       router.push("/profession");
       router.refresh();
     } catch (err) {
       const msg = err instanceof Error ? err.message : "测试账号登录失败，请稍后重试";
       setError(msg);
+      setDebugState("quick_login_exception");
     } finally {
+      if (timeoutId) clearTimeout(timeoutId);
       setIsQuickLogging(false);
     }
   };
@@ -51,21 +84,35 @@ export default function LoginPage() {
 
     setError(null);
     setIsSubmitting(true);
+    setDebugState("submit_clicked");
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
 
     try {
+      timeoutId = setTimeout(() => {
+        setError("登录请求超时：请检查网络、代理或 Supabase 配置后重试");
+        setIsSubmitting(false);
+        setDebugState("submit_timeout");
+      }, LOGIN_TIMEOUT_MS);
+
       const supabase = createClient();
-      const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+      setDebugState("submit_request_sent");
+      const { error: signInError } = await withTimeout(supabase.auth.signInWithPassword({ email, password }));
+      setDebugState("submit_response_received");
       if (signInError) {
         setError(signInError.message);
+        setDebugState("submit_auth_error");
         return;
       }
 
+      setDebugState("submit_success_redirecting");
       router.push("/");
       router.refresh();
     } catch (err) {
       const msg = err instanceof Error ? err.message : "登录失败，请稍后重试";
       setError(msg);
+      setDebugState("submit_exception");
     } finally {
+      if (timeoutId) clearTimeout(timeoutId);
       setIsSubmitting(false);
     }
   };
@@ -115,6 +162,7 @@ export default function LoginPage() {
           />
 
           {error && <p className="text-xs text-red-400">{error}</p>}
+          <p className="text-[11px] text-slate-500">debug: {debugState}</p>
 
           <button
             type="submit"

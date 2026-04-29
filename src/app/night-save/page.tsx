@@ -3,6 +3,13 @@
 import { AnimatePresence, motion } from "framer-motion";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  loadDailyMainQuest,
+  loadDailyMainQuestProgress,
+  MAIN_QUEST_QUICK_PREFIX,
+  saveDailyMainQuestProgress,
+  type DailyMainQuest
+} from "@/lib/daily-main-quest";
 import { listDailyLogs, type DailyLog } from "@/lib/daily-log";
 import {
   buildDailySeal,
@@ -11,6 +18,8 @@ import {
   romanDayNumber,
   saveDailySeal
 } from "@/lib/night-seal";
+import { upsertDailyLogServer } from "@/lib/batch1-supabase-sync";
+import { createClient } from "@/lib/supabase-browser";
 import { loadUserProfile } from "@/lib/user-profile";
 
 type Step = "review" | "dialogue" | "write" | "seal" | "forecast" | "final";
@@ -140,6 +149,9 @@ export default function NightSavePage() {
   const [customQuote, setCustomQuote] = useState("");
   const typeTimer = useRef<number | null>(null);
   const [companion, setCompanion] = useState("🧙");
+  const [mainQuest, setMainQuest] = useState<DailyMainQuest | null>(null);
+  const [mainQuestProgressed, setMainQuestProgressed] = useState(false);
+  const [mainQuestProgressAutoSuggested, setMainQuestProgressAutoSuggested] = useState(false);
 
   useEffect(() => {
     const profile = loadUserProfile();
@@ -153,6 +165,14 @@ export default function NightSavePage() {
       const d = new Date().toISOString().slice(0, 10);
       const t = x.find((l) => l.date === d) ?? null;
       setToday(t);
+      const mq = loadDailyMainQuest();
+      setMainQuest(mq);
+      const persisted = loadDailyMainQuestProgress();
+      const suggestedFromLog =
+        !persisted &&
+        Boolean(t?.adventures?.some((a) => a.taskName.trim().startsWith(MAIN_QUEST_QUICK_PREFIX)));
+      setMainQuestProgressAutoSuggested(suggestedFromLog);
+      setMainQuestProgressed(persisted ? persisted.progressed : suggestedFromLog);
       const streak = Number(localStorage.getItem("currentStreak") ?? "0");
       const nextDay = streak > 0 ? streak + 1 : x.length + 1;
       setDayNum(nextDay);
@@ -208,8 +228,20 @@ export default function NightSavePage() {
     playSealSound();
     playPageRustle();
     setStep("seal");
+    saveDailyMainQuestProgress(mainQuestProgressed);
     const seal = buildDailySeal(today, quote.trim());
     await saveDailySeal(seal);
+    try {
+      const supabase = createClient();
+      const {
+        data: { user }
+      } = await supabase.auth.getUser();
+      if (user) {
+        await upsertDailyLogServer(supabase, user.id, today, seal);
+      }
+    } catch (e) {
+      console.warn("[batch1] daily_logs upsert failed", e);
+    }
     setSaved(true);
     setTimeout(() => setStep("forecast"), 3000);
   };
@@ -276,8 +308,11 @@ export default function NightSavePage() {
       </motion.div>
 
       <div className="relative z-20 mx-auto max-w-6xl px-4 py-8">
-        <div className="mb-3 flex items-center justify-between">
-          <h1 className="text-2xl font-semibold">篝火封存</h1>
+        <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h1 className="mvp-page-title">夜间封存</h1>
+            <p className="mvp-page-desc max-w-xl">把今天收进人生之书；休息也可以封存。</p>
+          </div>
           <button
             type="button"
             onClick={() => {
@@ -296,7 +331,45 @@ export default function NightSavePage() {
               <p>今日出征：{today?.summary.totalTasks ?? 0} 场</p>
               <p>斩获：{today?.summary.totalXP ?? 0} 经验 | {today?.summary.totalCrystals ?? 0} 晶石</p>
               <p>战力变化：+{powerGain} 点</p>
+              <p className="mt-2 text-xs text-slate-500">
+                休整日也可以封存：写下一句真实感受即可封入书中，不必强求出征场次。
+              </p>
             </div>
+            {mainQuest && (
+              <div className="rounded-xl border border-amber-600/40 bg-slate-900/60 p-4">
+                <p className="text-sm text-amber-200">今日主线：{mainQuest.title}</p>
+                <p className="mt-1 text-xs text-slate-400">{mainQuest.objective}</p>
+                {mainQuestProgressAutoSuggested && (
+                  <p className="mt-2 text-xs text-slate-500">
+                    已根据今日日志中带「{MAIN_QUEST_QUICK_PREFIX.slice(0, -1)}」的任务预选为「已推进主线」，可随时改选。
+                  </p>
+                )}
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setMainQuestProgressed(true)}
+                    className={`rounded-full border px-3 py-1 text-xs ${
+                      mainQuestProgressed
+                        ? "border-emerald-500 bg-emerald-500/20 text-emerald-200"
+                        : "border-slate-600 text-slate-300"
+                    }`}
+                  >
+                    已推进主线
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setMainQuestProgressed(false)}
+                    className={`rounded-full border px-3 py-1 text-xs ${
+                      !mainQuestProgressed
+                        ? "border-amber-500 bg-amber-500/20 text-amber-200"
+                        : "border-slate-600 text-slate-300"
+                    }`}
+                  >
+                    明日继续推进
+                  </button>
+                </div>
+              </div>
+            )}
             <div className="relative min-h-28">
               <AnimatePresence>
                 {topCards.map((c, idx) => (

@@ -45,7 +45,16 @@ export type UserProfile = {
   nickname: string;
   realJob: string;
   mbti: string;
+  birthMonth?: number;
+  birthDay?: number;
   constellation: string;
+  lifeStage?: string;
+  education?: string;
+  heightCm?: number;
+  weightKg?: number;
+  currentChallenge?: string;
+  desiredSelf?: string;
+  firstMainQuest?: string;
   race: Race;
   primaryClass: ClassKey;
   secondaryClass: ClassKey;

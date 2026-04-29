@@ -11,6 +11,8 @@ import { applyTaskXpToSkillTrees, type SkillUnlockEvent } from "@/lib/skill-tree
 import { onTaskAdventureSuccess, onTaskComaFailure } from "@/lib/task-adventure-flow";
 import type { Task } from "@/types/db";
 import { appendAdventureLog, createDefaultVirtualCharacter } from "@/types/game";
+import { insertTaskRewardEvent } from "@/lib/batch1-supabase-sync";
+import { maybeAutoMarkMainQuestProgressFromTaskTitle } from "@/lib/daily-main-quest";
 import { loadUserProfile, saveUserProfile, type UserProfile } from "@/lib/user-profile";
 
 export type ExecuteTaskCompletionArgs = {
@@ -104,6 +106,24 @@ export async function executeTaskCompletion(
     })
     .eq("id", profile.id);
 
+  try {
+    await insertTaskRewardEvent(supabase, {
+      userId: profile.id,
+      taskId: task.id,
+      xpDelta: finalXp,
+      crystalsDelta: finalCrystal,
+      meta: {
+        title: task.title,
+        difficulty: task.difficulty,
+        profession: task.profession,
+        comaMode,
+        taskTrack: task.task_track ?? null
+      }
+    });
+  } catch (e) {
+    console.warn("[batch1] reward_events insert failed", e);
+  }
+
   localStorage.setItem(
     "life-rpg-recent-completed",
     JSON.stringify({
@@ -113,6 +133,8 @@ export async function executeTaskCompletion(
     })
   );
   localStorage.setItem(`life-rpg-daily-count-${todayKey}`, String(completedTodayCount + 1));
+
+  maybeAutoMarkMainQuestProgressFromTaskTitle(task.title);
 
   incrementLocalTaskComplete();
 
