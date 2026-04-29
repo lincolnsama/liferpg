@@ -263,21 +263,34 @@ export default function OnboardingPage() {
       createdAt: Date.now()
     };
 
-    saveUserProfile(payload);
-
     try {
       const {
         data: { user }
       } = await supabase.auth.getUser();
 
+      if (!user) {
+        setSaveError("登录状态已失效，请重新登录后再创建角色。");
+        setIsSaving(false);
+        return;
+      }
+
       if (user) {
-        await supabase
+        const { error } = await supabase
           .from("profiles")
           .update({
             nickname: payload.nickname,
             real_job: payload.realJob,
             mbti: payload.mbti,
+            birth_month: payload.birthMonth,
+            birth_day: payload.birthDay,
             constellation: payload.constellation,
+            life_stage: payload.lifeStage,
+            education: payload.education ?? null,
+            height_cm: payload.heightCm ?? null,
+            weight_kg: payload.weightKg ?? null,
+            current_challenge: payload.currentChallenge ?? null,
+            desired_self: payload.desiredSelf ?? null,
+            first_main_quest: payload.firstMainQuest,
             race: payload.race,
             primary_class: payload.primaryClass,
             secondary_class: payload.secondaryClass,
@@ -285,20 +298,11 @@ export default function OnboardingPage() {
           })
           .eq("id", user.id);
 
-        await supabase
-          .from("profiles")
-          .update({
-            birth_month: payload.birthMonth,
-            birth_day: payload.birthDay,
-            life_stage: payload.lifeStage,
-            education: payload.education ?? null,
-            height_cm: payload.heightCm ?? null,
-            weight_kg: payload.weightKg ?? null,
-            current_challenge: payload.currentChallenge ?? null,
-            desired_self: payload.desiredSelf ?? null,
-            first_main_quest: payload.firstMainQuest
-          })
-          .eq("id", user.id);
+        if (error) {
+          setSaveError(`角色档案保存失败：${error.message}`);
+          setIsSaving(false);
+          return;
+        }
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : "画像同步失败，请稍后重试";
@@ -307,6 +311,7 @@ export default function OnboardingPage() {
       return;
     }
 
+    saveUserProfile(payload);
     router.push("/");
     router.refresh();
   };

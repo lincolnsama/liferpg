@@ -6,6 +6,7 @@ import { FormEvent, useState } from "react";
 import { createClient } from "@/lib/supabase-browser";
 
 const LOGIN_TIMEOUT_MS = 12000;
+const IS_DEV = process.env.NODE_ENV === "development";
 
 async function withTimeout<T>(promise: Promise<T>, ms = LOGIN_TIMEOUT_MS): Promise<T> {
   let timeoutId: ReturnType<typeof setTimeout> | undefined;
@@ -66,7 +67,7 @@ export default function LoginPage() {
       }
 
       setDebugState("quick_login_success_redirecting");
-      router.push("/profession");
+      router.push("/");
       router.refresh();
     } catch (err) {
       const msg = err instanceof Error ? err.message : "测试账号登录失败，请稍后重试";
@@ -122,26 +123,28 @@ export default function LoginPage() {
       <div className="card w-full max-w-md">
         <h1 className="mb-2 text-xl font-semibold">登录 Life RPG</h1>
         <p className="mb-5 text-sm text-slate-400">使用邮箱和密码继续冒险</p>
-        <div className="mb-4 rounded-lg border border-slate-700 bg-slate-900/70 p-3 text-xs text-slate-300">
-          测试账号：test@test.com / 123456
-          <div className="mt-2 flex gap-2">
-            <button
-              type="button"
-              onClick={fillTestAccount}
-              className="rounded-md border border-slate-600 px-2 py-1 text-slate-200 hover:border-slate-500"
-            >
-              自动填充
-            </button>
-            <button
-              type="button"
-              onClick={quickLoginTestAccount}
-              disabled={isQuickLogging}
-              className="rounded-md bg-blue-600 px-2 py-1 text-white hover:bg-blue-500 disabled:cursor-not-allowed disabled:bg-slate-700"
-            >
-              {isQuickLogging ? "登录中..." : "一键登录测试账号"}
-            </button>
+        {IS_DEV && (
+          <div className="mb-4 rounded-lg border border-slate-700 bg-slate-900/70 p-3 text-xs text-slate-300">
+            本地开发测试账号：test@test.com / 123456
+            <div className="mt-2 flex gap-2">
+              <button
+                type="button"
+                onClick={fillTestAccount}
+                className="rounded-md border border-slate-600 px-2 py-1 text-slate-200 hover:border-slate-500"
+              >
+                自动填充
+              </button>
+              <button
+                type="button"
+                onClick={quickLoginTestAccount}
+                disabled={isQuickLogging}
+                className="rounded-md bg-blue-600 px-2 py-1 text-white hover:bg-blue-500 disabled:cursor-not-allowed disabled:bg-slate-700"
+              >
+                {isQuickLogging ? "登录中..." : "一键登录测试账号"}
+              </button>
+            </div>
           </div>
-        </div>
+        )}
 
         <form onSubmit={onSubmit} className="space-y-4">
           <input
@@ -162,7 +165,7 @@ export default function LoginPage() {
           />
 
           {error && <p className="text-xs text-red-400">{error}</p>}
-          <p className="text-[11px] text-slate-500">debug: {debugState}</p>
+          {IS_DEV && <p className="text-[11px] text-slate-500">debug: {debugState}</p>}
 
           <button
             type="submit"

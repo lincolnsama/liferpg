@@ -69,6 +69,7 @@ const navSections: NavSection[] = [
 ];
 
 const navMore: NavItem[] = [
+  { href: "/feedback", label: "Demo 反馈" },
   { href: "/epic-quests", label: "史诗任务" },
   { href: "/weekly", label: "周常" },
   { href: "/adventure", label: "文字冒险" },

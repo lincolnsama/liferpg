@@ -117,6 +117,71 @@ export const RACE_META: Record<Race, { name: string; icon: string; desc: string 
   ambient: { name: "环境型", icon: "🎧", desc: "平衡稳定，无惩罚型特性" }
 };
 
+export type ProfileHydrationRow = {
+  nickname: string | null;
+  real_job: string | null;
+  mbti: string | null;
+  birth_month: number | null;
+  birth_day: number | null;
+  constellation: string | null;
+  life_stage: string | null;
+  education: string | null;
+  height_cm: number | null;
+  weight_kg: number | null;
+  current_challenge: string | null;
+  desired_self: string | null;
+  first_main_quest: string | null;
+  race: string | null;
+  primary_class: string | null;
+  secondary_class: string | null;
+  match_score: number | null;
+  created_at: string | null;
+};
+
+function isRace(value: string | null): value is Race {
+  return Boolean(value && value in RACE_META);
+}
+
+function isClassKey(value: string | null): value is ClassKey {
+  return Boolean(value && classOrderSet.has(value as ClassKey));
+}
+
+const classOrderSet = new Set<ClassKey>(["warrior", "mage", "explorer", "artisan", "guardian"]);
+
+export function userProfileFromProfileRow(row: ProfileHydrationRow | null): UserProfile | null {
+  if (!row?.nickname || !isRace(row.race) || !isClassKey(row.primary_class) || !isClassKey(row.secondary_class)) {
+    return null;
+  }
+
+  return {
+    nickname: row.nickname,
+    realJob: row.real_job ?? "其他",
+    mbti: row.mbti ?? "我不知道",
+    birthMonth: row.birth_month ?? undefined,
+    birthDay: row.birth_day ?? undefined,
+    constellation: row.constellation ?? "未知",
+    lifeStage: row.life_stage ?? undefined,
+    education: row.education ?? undefined,
+    heightCm: row.height_cm ?? undefined,
+    weightKg: row.weight_kg ?? undefined,
+    currentChallenge: row.current_challenge ?? undefined,
+    desiredSelf: row.desired_self ?? undefined,
+    firstMainQuest: row.first_main_quest ?? undefined,
+    race: row.race,
+    primaryClass: row.primary_class,
+    secondaryClass: row.secondary_class,
+    matchScore: row.match_score ?? 60,
+    createdAt: row.created_at ? new Date(row.created_at).getTime() : Date.now(),
+    virtualCharacter: createDefaultVirtualCharacter({
+      realJob: row.real_job ?? "其他",
+      race: row.race,
+      primaryClass: row.primary_class,
+      secondaryClass: row.secondary_class
+    }),
+    skillTreeProgress: defaultSkillTreeProgress()
+  };
+}
+
 export const loadUserProfile = (): UserProfile | null => {
   if (typeof window === "undefined") return null;
   try {

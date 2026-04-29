@@ -416,7 +416,10 @@ export default function TasksPage() {
     const {
       data: { user }
     } = await supabase.auth.getUser();
-    if (!user) return;
+    if (!user) {
+      setActionError("登录状态已失效，请重新登录后再创建任务。");
+      return;
+    }
 
     const todayYmd = new Date().toISOString().slice(0, 10);
     let estimatedMinutes = DIFFICULTY_ESTIMATED_MINUTES[effectiveDifficulty];
@@ -494,7 +497,10 @@ export default function TasksPage() {
     const {
       data: { user }
     } = await supabase.auth.getUser();
-    if (!user) return;
+    if (!user) {
+      setActionError("登录状态已失效，请重新登录后再创建任务。");
+      return;
+    }
     const todayYmd = logDraft.todayYmd;
     if (getLogTaskCountToday(todayYmd) >= MAX_LOG_TASKS_PER_DAY) {
       setActionError(`今日「记录已完成」已达 ${MAX_LOG_TASKS_PER_DAY} 次上限。`);
@@ -546,7 +552,10 @@ export default function TasksPage() {
     const {
       data: { user }
     } = await supabase.auth.getUser();
-    if (!user) return;
+    if (!user) {
+      setActionError("登录状态已失效，请重新登录后再创建任务。");
+      return;
+    }
 
     let base = userProfile ?? loadUserProfile();
     if (!base) {
@@ -576,7 +585,11 @@ export default function TasksPage() {
       .maybeSingle();
 
     if (insertError || !newTask) {
-      await supabase.from("tasks").insert(insertPayload as never);
+      const { error: fallbackError } = await supabase.from("tasks").insert(insertPayload as never);
+      if (fallbackError) {
+        setActionError(`任务创建失败：${fallbackError.message || insertError?.message || "请稍后重试"}`);
+        return;
+      }
       await loadData();
       setBriefingOpen(false);
       setPendingBriefing(null);
