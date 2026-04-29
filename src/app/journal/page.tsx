@@ -1,7 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import AppShell from "@/components/app-shell";
+import { MvpPageHeader } from "@/components/mvp-page-header";
 import {
   addManualMilestone,
   buildMilestones,
@@ -9,11 +11,13 @@ import {
   compareSnapshotsByDate,
   difficultyColor,
   heatValue,
-  listDailyLogs,
   listMonthlySummaries,
   sealTodayJournal,
   type DailyLog
 } from "@/lib/daily-log";
+import { listMergedDailyLogs } from "@/lib/daily-logs-merge";
+import { GENTLE_COPY } from "@/lib/growth-narrative";
+import { listSeals, type DailySeal } from "@/lib/night-seal";
 
 export default function JournalPage() {
   const [logs, setLogs] = useState<DailyLog[]>([]);
@@ -25,19 +29,23 @@ export default function JournalPage() {
   const [msDate, setMsDate] = useState(new Date().toISOString().slice(0, 10));
   const [compareDay1, setCompareDay1] = useState("");
   const [compareDay2, setCompareDay2] = useState("");
+  const [seals, setSeals] = useState<DailySeal[]>([]);
+
+  const refreshLogs = async () => {
+    const merged = await listMergedDailyLogs();
+    setLogs(merged);
+    const rows = await listMonthlySummaries();
+    setMonthly(rows.map((r) => ({ month: r.month, totalTasks: r.totalTasks, totalXP: r.totalXP })));
+    void listSeals().then(setSeals);
+  };
 
   useEffect(() => {
-    void listDailyLogs().then(setLogs);
-    void listMonthlySummaries().then((rows) =>
-      setMonthly(rows.map((r) => ({ month: r.month, totalTasks: r.totalTasks, totalXP: r.totalXP })))
-    );
+    void refreshLogs();
   }, []);
 
   const sealToday = async () => {
     await sealTodayJournal();
-    setLogs(await listDailyLogs());
-    const rows = await listMonthlySummaries();
-    setMonthly(rows.map((r) => ({ month: r.month, totalTasks: r.totalTasks, totalXP: r.totalXP })));
+    await refreshLogs();
   };
 
   const flatAdventures = useMemo(
@@ -61,15 +69,14 @@ export default function JournalPage() {
     if (!msTitle.trim()) return;
     addManualMilestone({ date: msDate, title: msTitle.trim() });
     setMsTitle("");
-    setLogs(await listDailyLogs());
+    await refreshLogs();
   };
 
   return (
     <AppShell>
-      <section className="card">
-        <h1 className="text-xl font-semibold">人生日志</h1>
-        <p className="mt-1 text-sm text-slate-400">自动记录每日冒险、打卡和成长快照。</p>
-        <div className="mt-3 flex flex-wrap gap-2">
+      <MvpPageHeader title="人生日志" description={GENTLE_COPY.journalIntro} />
+      <section className="card mb-6">
+        <div className="flex flex-wrap gap-2">
           <button
             type="button"
             onClick={() => void sealToday()}
@@ -98,8 +105,36 @@ export default function JournalPage() {
           >
             人生之书
           </button>
+          <Link
+            href="/night-save"
+            className="rounded-lg border border-amber-600/50 px-3 py-1.5 text-sm text-amber-200 hover:bg-amber-950/40"
+          >
+            夜间封存 →
+          </Link>
         </div>
       </section>
+
+      {seals.length > 0 && (
+        <section className="mt-6 card border-amber-900/30 bg-gradient-to-br from-amber-950/25 to-slate-900/90">
+          <h2 className="text-lg font-semibold text-amber-100">夜间封存摘录</h2>
+          <p className="mt-1 text-xs text-slate-500">与篝火仪式同步；已登录时合并云端封存记录。</p>
+          <ul className="mt-3 space-y-2">
+            {seals.slice(0, 14).map((s) => (
+              <li
+                key={s.date}
+                className="rounded-lg border border-slate-800/80 bg-slate-950/50 px-3 py-2 text-sm text-slate-200"
+              >
+                <span className="text-xs text-amber-200/80">{s.date}</span>
+                <span className="mx-2 text-slate-600">·</span>
+                <span className="text-slate-300">&ldquo;{s.quote.length > 48 ? `${s.quote.slice(0, 48)}…` : s.quote}&rdquo;</span>
+                <span className="ml-2 text-xs text-slate-500">
+                  {s.summary.tasksCompleted} 场 · 连续 {s.streak} 日
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {view === "timeline" && (
         <section className="mt-6 card">
@@ -142,7 +177,12 @@ export default function JournalPage() {
                 </div>
               );
             })}
-            {flatAdventures.length === 0 && <p className="text-sm text-slate-400">暂无冒险节点。</p>}
+            {flatAdventures.length === 0 && (
+              <div className="rounded-lg border border-slate-800 bg-slate-950/40 p-4 text-sm text-slate-400">
+                <p>{GENTLE_COPY.noTasksYet}</p>
+                <p className="mt-2 text-xs text-slate-500">{GENTLE_COPY.retreatDay}</p>
+              </div>
+            )}
           </div>
         </section>
       )}

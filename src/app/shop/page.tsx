@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import AppShell from "@/components/app-shell";
+import { MvpPageHeader } from "@/components/mvp-page-header";
 import { loadCosmetics } from "@/lib/cosmetics";
 import { shopGearList, type GearDef } from "@/lib/equipment-catalog";
 import { addGearToStash, buyGearWithCrystals } from "@/lib/gear-inventory";
@@ -93,25 +94,23 @@ export default function ShopPage() {
 
   return (
     <AppShell>
-      <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-        <div>
-          <h1 className="text-xl font-semibold text-slate-100">装备商店</h1>
-          <p className="mt-1 text-sm text-slate-400">
-            晶石购买 RPG 装备；困难任务概率掉落稀有装备；连续打卡 7 天可领取史诗「破晓冠冕」（见冒险/装备页）。
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Link
-            href="/inventory"
-            className="rounded-lg border border-cyan-700/50 bg-cyan-500/10 px-3 py-2 text-sm text-cyan-200 hover:bg-cyan-500/20"
-          >
-            打开装备 / 背包 →
-          </Link>
-          <Link href="/collection" className="rounded-lg border border-slate-600 px-3 py-2 text-sm text-slate-300 hover:bg-slate-800">
-            外观收藏 →
-          </Link>
-        </div>
-      </div>
+      <MvpPageHeader
+        title="装备商店"
+        description="用任务攒下的晶石换装备；困难任务可掉落稀有物；连续打卡 7 天可领史诗「破晓冠冕」。"
+        actions={
+          <>
+            <Link
+              href="/inventory"
+              className="rounded-lg border border-cyan-700/50 bg-cyan-500/10 px-3 py-2 text-sm text-cyan-200 hover:bg-cyan-500/20"
+            >
+              打开背包 →
+            </Link>
+            <Link href="/collection" className="rounded-lg border border-slate-600 px-3 py-2 text-sm text-slate-300 hover:bg-slate-800">
+              外观收藏 →
+            </Link>
+          </>
+        }
+      />
 
       <section className="mb-6 grid gap-4 md:grid-cols-2">
         <div className="card">

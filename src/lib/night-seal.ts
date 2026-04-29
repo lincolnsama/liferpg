@@ -1,4 +1,7 @@
 import type { DailyLog } from "@/lib/daily-log";
+import { notifyDailyLoopUpdated } from "@/lib/daily-loop-events";
+import { LAST_SEAL_DATE_KEY } from "@/lib/daily-loop-state";
+import { schedulePushDayLoopCache } from "@/lib/batch1-supabase-sync";
 
 export type DailySeal = {
   date: string;
@@ -65,12 +68,14 @@ function reqToPromise<T>(req: IDBRequest<T>): Promise<T> {
 }
 
 export async function saveDailySeal(seal: DailySeal): Promise<void> {
-  localStorage.setItem("lastSealDate", seal.date);
+  localStorage.setItem(LAST_SEAL_DATE_KEY, seal.date);
+  notifyDailyLoopUpdated();
   localStorage.setItem("currentStreak", String(seal.streak));
   localStorage.setItem(`seal_${seal.date}`, JSON.stringify(seal));
   await withStore("readwrite", async (store) => {
     store.put(seal);
   });
+  schedulePushDayLoopCache();
 }
 
 export async function listSeals(): Promise<DailySeal[]> {
@@ -85,7 +90,7 @@ function toDate(date: string): number {
 }
 
 export function calculateSealStreak(today: string): number {
-  const last = localStorage.getItem("lastSealDate");
+  const last = localStorage.getItem(LAST_SEAL_DATE_KEY);
   const current = Number(localStorage.getItem("currentStreak") ?? "0");
   if (!last) return 1;
   const diff = toDate(today) - toDate(last);
@@ -95,7 +100,7 @@ export function calculateSealStreak(today: string): number {
 }
 
 export function daysSinceLastSeal(today: string): number {
-  const last = localStorage.getItem("lastSealDate");
+  const last = localStorage.getItem(LAST_SEAL_DATE_KEY);
   if (!last) return 999;
   return Math.max(0, Math.round((toDate(today) - toDate(last)) / (24 * 3600 * 1000)));
 }

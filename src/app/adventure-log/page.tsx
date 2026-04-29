@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import AppShell from "@/components/app-shell";
+import { MvpPageHeader } from "@/components/mvp-page-header";
 import type { AdventureEvent } from "@/types/game";
 import { applyAdventureFleePenalty } from "@/lib/adventure-system";
 import { loadUserProfile, saveUserProfile, type UserProfile } from "@/lib/user-profile";
@@ -61,33 +62,31 @@ export default function AdventureLogPage() {
 
   return (
     <AppShell>
-      <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-        <div>
-          <h1 className="text-xl font-semibold text-slate-100">冒险战报</h1>
-          <p className="mt-1 text-sm text-slate-400">
-            每次完成任务会生成一段模板化文字战报，保存在角色「冒险日志」中。地图遭遇的胜利也会追加摘要。
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Link
-            href="/adventure"
-            className="rounded-lg border border-emerald-800/50 bg-emerald-950/40 px-3 py-2 text-sm text-emerald-200 hover:bg-emerald-900/50"
-          >
-            前往冒险地图 →
-          </Link>
-          <Link href="/tasks" className="rounded-lg border border-cyan-700/50 bg-cyan-500/10 px-3 py-2 text-sm text-cyan-200 hover:bg-cyan-500/20">
-            去任务 →
-          </Link>
-          <button
-            type="button"
-            onClick={simulateFlee}
-            className="rounded-lg border border-rose-800/60 bg-rose-950/40 px-3 py-2 text-sm text-rose-200 hover:bg-rose-900/50"
-            title="演示「逃跑」惩罚：扣 20% 最大 HP（下限 1）"
-          >
-            演示逃跑惩罚
-          </button>
-        </div>
-      </div>
+      <MvpPageHeader
+        title="冒险战报"
+        description="完成任务会生成文字战报并写入冒险日志；地图遭遇的胜利也会追加摘要。"
+        actions={
+          <>
+            <Link
+              href="/adventure"
+              className="rounded-lg border border-emerald-800/50 bg-emerald-950/40 px-3 py-2 text-sm text-emerald-200 hover:bg-emerald-900/50"
+            >
+              冒险地图 →
+            </Link>
+            <Link href="/tasks" className="rounded-lg border border-cyan-700/50 bg-cyan-500/10 px-3 py-2 text-sm text-cyan-200 hover:bg-cyan-500/20">
+              去任务 →
+            </Link>
+            <button
+              type="button"
+              onClick={simulateFlee}
+              className="rounded-lg border border-rose-800/60 bg-rose-950/40 px-3 py-2 text-sm text-rose-200 hover:bg-rose-900/50"
+              title="演示「逃跑」惩罚：扣 20% 最大 HP（下限 1）"
+            >
+              演示逃跑惩罚
+            </button>
+          </>
+        }
+      />
 
       <section className="card mb-6 border-slate-700">
         <h2 className="text-sm font-semibold text-slate-300">规则摘要</h2>

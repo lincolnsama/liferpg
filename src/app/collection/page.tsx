@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import AppShell from "@/components/app-shell";
+import { MvpPageHeader } from "@/components/mvp-page-header";
 import {
   CATALOG,
   COSMETICS_UPDATED_EVENT,
@@ -37,8 +38,8 @@ export default function CollectionPage() {
       <section className="card mb-6">
         <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
           <div>
-            <h1 className="text-xl font-semibold text-slate-100">我的收藏</h1>
-            <p className="mt-1 text-sm text-slate-400">皮肤、专注背景与头像框收集进度</p>
+            <h1 className="mvp-page-title">我的收藏</h1>
+            <p className="mvp-page-desc">皮肤、专注背景与头像框收集进度</p>
           </div>
           <div className="text-right">
             <p className="text-3xl font-bold text-cyan-300">{pct}%</p>

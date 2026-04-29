@@ -2,6 +2,21 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer components {
+  /* 全站统一卡片（此前 class="card" 未定义） */
+  .card {
+    @apply rounded-xl border border-slate-800/90 bg-slate-950/50 p-5 shadow-sm backdrop-blur-sm;
+  }
+
+  .mvp-page-title {
+    @apply text-xl font-semibold tracking-tight text-slate-100 md:text-2xl;
+  }
+
+  .mvp-page-desc {
+    @apply mt-1 max-w-2xl text-sm leading-relaxed text-slate-400;
+  }
+}
+
 /* 主题：由 CosmeticRoot 设置 html[data-theme] */
 html[data-theme="cyber"] {
   --app-accent: 34 211 238;

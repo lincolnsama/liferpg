@@ -2,8 +2,10 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import { BookOpen, Dices, Sparkles, Sword } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { loadDailyMainQuest, MAIN_QUEST_OPTIONS, saveDailyMainQuest } from "@/lib/daily-main-quest";
+import { isMorningLoadCompleteForToday, markMorningLoadComplete } from "@/lib/daily-loop-state";
 import { loadUserProfile, type UserProfile } from "@/lib/user-profile";
 
 type YesterdaySeal = {
@@ -87,20 +89,34 @@ function raceInfo(profile: UserProfile | null, hour: number) {
 
 export default function MorningLoadPage() {
   const router = useRouter();
+  const [pickMainOnly, setPickMainOnly] = useState(false);
   const [step, setStep] = useState(0);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [yesterday, setYesterday] = useState<YesterdaySeal | null>(null);
   const [fortune, setFortune] = useState<TodayFortune | null>(null);
   const [showQuickCreate, setShowQuickCreate] = useState(false);
-  const today = useMemo(() => new Date().toDateString(), []);
+  const [selectedMainQuestId, setSelectedMainQuestId] = useState(MAIN_QUEST_OPTIONS[0]?.id ?? "health-reset");
 
-  useEffect(() => {
-    const lastLoad = localStorage.getItem("lastMorningLoad");
-    if (lastLoad === today) {
-      router.push("/");
+  useLayoutEffect(() => {
+    const pick =
+      typeof window !== "undefined" &&
+      new URLSearchParams(window.location.search).get("pickMain") === "1";
+    setPickMainOnly(pick);
+
+    if (isMorningLoadCompleteForToday() && !pick) {
+      router.replace("/");
       return;
     }
     setProfile(loadUserProfile());
+    if (pick && isMorningLoadCompleteForToday()) {
+      const mq = loadDailyMainQuest();
+      if (mq?.id) setSelectedMainQuestId(mq.id);
+      setShowQuickCreate(true);
+      setStep(STEP_DURATION.length - 1);
+      setYesterday(null);
+      setFortune(null);
+      return;
+    }
     try {
       const y = JSON.parse(localStorage.getItem(`seal_${yesterdayYmd()}`) ?? "null") as YesterdaySeal | null;
       setYesterday(y);
@@ -108,25 +124,92 @@ export default function MorningLoadPage() {
       setYesterday(null);
     }
     setFortune(generateFortune());
-  }, [router, today]);
+  }, [router]);
 
   useEffect(() => {
+    if (pickMainOnly && isMorningLoadCompleteForToday()) return;
     if (step >= STEP_DURATION.length - 1) {
       setShowQuickCreate(true);
-      localStorage.setItem("lastMorningLoad", today);
+      markMorningLoadComplete();
       return;
     }
     const id = window.setTimeout(() => setStep((s) => s + 1), STEP_DURATION[step]);
     return () => window.clearTimeout(id);
-  }, [step, today]);
+  }, [step, pickMainOnly]);
 
   const currentHour = new Date().getHours();
   const race = raceInfo(profile, currentHour);
+  const selectedMainQuest = useMemo(
+    () => MAIN_QUEST_OPTIONS.find((opt) => opt.id === selectedMainQuestId) ?? MAIN_QUEST_OPTIONS[0],
+    [selectedMainQuestId]
+  );
+
+  const persistMorningSelection = (nextPath: string) => {
+    if (fortune) localStorage.setItem("todayFortune", JSON.stringify(fortune));
+    if (selectedMainQuest) saveDailyMainQuest(selectedMainQuest);
+    markMorningLoadComplete();
+    router.push(nextPath);
+  };
+
+  const persistPickMainOnly = (nextPath: string) => {
+    if (selectedMainQuest) saveDailyMainQuest(selectedMainQuest);
+    router.push(nextPath);
+  };
 
   const acceptFortune = () => {
-    if (fortune) localStorage.setItem("todayFortune", JSON.stringify(fortune));
-    router.push("/tasks?mode=quick");
+    persistMorningSelection("/tasks?mode=quick");
   };
+
+  if (pickMainOnly && isMorningLoadCompleteForToday()) {
+    return (
+      <div className="relative min-h-screen overflow-hidden bg-slate-900 p-6 text-white">
+        <button
+          type="button"
+          onClick={() => router.push("/")}
+          className="text-sm text-slate-500 transition-colors hover:text-slate-300"
+        >
+          ← 回营地
+        </button>
+        <div className="mx-auto mt-10 max-w-3xl space-y-6 text-center">
+          <h1 className="text-2xl font-semibold text-amber-100">补选今日主线</h1>
+          <p className="text-sm text-slate-400">晨间已报到过，这里只补登今日章节方向，不会影响晨间完成状态。</p>
+          <div className="grid gap-3 text-left md:grid-cols-2">
+            {MAIN_QUEST_OPTIONS.map((option) => (
+              <button
+                key={option.id}
+                type="button"
+                onClick={() => setSelectedMainQuestId(option.id)}
+                className={`rounded-xl border p-4 text-left transition ${
+                  selectedMainQuestId === option.id
+                    ? "border-amber-400 bg-amber-500/10"
+                    : "border-slate-700/70 bg-slate-900/60 hover:border-slate-500"
+                }`}
+              >
+                <p className="text-sm font-semibold text-amber-100">{option.title}</p>
+                <p className="mt-1 text-xs text-slate-400">{option.objective}</p>
+              </button>
+            ))}
+          </div>
+          <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+            <button
+              type="button"
+              onClick={() => persistPickMainOnly("/tasks?mode=quick")}
+              className="rounded-full bg-gradient-to-r from-amber-500 to-orange-600 px-8 py-3 text-sm font-bold text-white shadow-lg hover:shadow-xl"
+            >
+              锁定并去任务页
+            </button>
+            <button
+              type="button"
+              onClick={() => persistPickMainOnly("/")}
+              className="rounded-full border border-slate-600 px-6 py-3 text-sm text-slate-300 hover:border-slate-400"
+            >
+              锁定后回营地
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-slate-900 text-white">
@@ -233,20 +316,40 @@ export default function MorningLoadPage() {
         )}
 
         {showQuickCreate && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-12 space-y-4 text-center">
-            <p className="text-sm text-slate-400">今日首役，准备挑战什么？</p>
-            <button
-              onClick={() => router.push("/tasks?mode=quick")}
-              className="group relative rounded-full bg-gradient-to-r from-amber-500 to-orange-600 px-8 py-4 font-bold text-white shadow-lg transition-all hover:scale-105 hover:shadow-xl"
-            >
-              <span className="relative z-10 flex items-center gap-2">
-                <Sword className="h-5 w-5" />
-                翻开今日篇章
-              </span>
-            </button>
-            <div className="pt-4">
-              <button onClick={() => router.push("/")} className="text-sm text-slate-500 transition-colors hover:text-slate-300">
-                先查看营地情况 →
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-12 w-full max-w-3xl space-y-4 text-center">
+            <p className="text-sm text-slate-300">今日首役前，先锁定你的主线。</p>
+            <div className="grid gap-3 md:grid-cols-2">
+              {MAIN_QUEST_OPTIONS.map((option) => (
+                <button
+                  key={option.id}
+                  type="button"
+                  onClick={() => setSelectedMainQuestId(option.id)}
+                  className={`rounded-xl border p-4 text-left transition ${
+                    selectedMainQuestId === option.id
+                      ? "border-amber-400 bg-amber-500/10"
+                      : "border-slate-700/70 bg-slate-900/60 hover:border-slate-500"
+                  }`}
+                >
+                  <p className="text-sm font-semibold text-amber-100">{option.title}</p>
+                  <p className="mt-1 text-xs text-slate-400">{option.objective}</p>
+                </button>
+              ))}
+            </div>
+            <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+              <button
+                onClick={acceptFortune}
+                className="group relative rounded-full bg-gradient-to-r from-amber-500 to-orange-600 px-8 py-4 font-bold text-white shadow-lg transition-all hover:scale-105 hover:shadow-xl"
+              >
+                <span className="relative z-10 flex items-center gap-2">
+                  <Sword className="h-5 w-5" />
+                  锁定主线并去任务页
+                </span>
+              </button>
+              <button
+                onClick={() => persistMorningSelection("/")}
+                className="rounded-full border border-slate-600 px-6 py-3 text-sm text-slate-300 transition-colors hover:border-slate-400 hover:text-slate-100"
+              >
+                锁定主线，先回营地
               </button>
             </div>
           </motion.div>
@@ -255,7 +358,7 @@ export default function MorningLoadPage() {
         {step < 4 && (
           <button
             onClick={() => {
-              localStorage.setItem("lastMorningLoad", today);
+              markMorningLoadComplete();
               router.push("/");
             }}
             className="absolute bottom-8 right-8 text-sm text-slate-600 transition-colors hover:text-slate-400"

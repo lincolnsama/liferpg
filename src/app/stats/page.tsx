@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import AppShell from "@/components/app-shell";
+import { MvpPageHeader } from "@/components/mvp-page-header";
 import { createClient } from "@/lib/supabase-browser";
 import {
   buildLevelSeriesLast30Days,
@@ -24,7 +25,9 @@ import {
 } from "@/lib/stats-helpers";
 import { drawWeeklyReportToCanvas, downloadCanvasPng } from "@/lib/stats-report-canvas";
 import { loadCosmetics } from "@/lib/cosmetics";
-import { listDailyLogs, type DailyLog } from "@/lib/daily-log";
+import { listMergedDailyLogs } from "@/lib/daily-logs-merge";
+import { statsWeekNarrative } from "@/lib/growth-narrative";
+import type { DailyLog } from "@/lib/daily-log";
 import { loadUserProfile, type UserProfile } from "@/lib/user-profile";
 import { getLevelFromXp } from "@/lib/utils";
 import type { Profession, Task } from "@/types/db";
@@ -245,7 +248,7 @@ export default function StatsPage() {
     setProfileXp((prof as { xp?: number })?.xp ?? 0);
     setTasks((taskRows as Task[]) ?? []);
     setUserProfile(loadUserProfile());
-    setDailyLogs(await listDailyLogs());
+    setDailyLogs(await listMergedDailyLogs());
     const cos = loadCosmetics();
     const { isRecord } = updateMaxCheckinStreak(cos.checkInStreak);
     setStreakRecord(isRecord);
@@ -362,24 +365,31 @@ export default function StatsPage() {
 
   return (
     <AppShell>
-      <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-        <div>
-          <h1 className="text-xl font-semibold text-slate-100">人生数据</h1>
-          <p className="mt-1 text-sm text-slate-400">本周 {weekLabel} · 近 30 天趋势与晶石结构</p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={exportPng}
-            className="rounded-lg border border-cyan-600/60 bg-cyan-500/15 px-4 py-2 text-sm text-cyan-200 hover:bg-cyan-500/25"
-          >
-            导出本周人生报告（PNG）
-          </button>
-          <Link href="/tasks" className="rounded-lg border border-slate-600 px-4 py-2 text-sm text-slate-300 hover:bg-slate-800">
-            去做任务 →
-          </Link>
-        </div>
-      </div>
+      <section className="card mb-6 border-slate-700/80 bg-slate-950/40">
+        <p className="text-sm leading-relaxed text-slate-300">{statsWeekNarrative(dailyLogs)}</p>
+      </section>
+
+      <MvpPageHeader
+        title="人生数据"
+        description={`本周 ${weekLabel} · 等级趋势、职业分布与里程碑`}
+        actions={
+          <>
+            <button
+              type="button"
+              onClick={exportPng}
+              className="rounded-lg border border-cyan-600/60 bg-cyan-500/15 px-4 py-2 text-sm text-cyan-200 hover:bg-cyan-500/25"
+            >
+              导出本周人生报告（PNG）
+            </button>
+            <Link href="/journal" className="rounded-lg border border-slate-600 px-4 py-2 text-sm text-slate-300 hover:bg-slate-800">
+              完整记录在日志 →
+            </Link>
+            <Link href="/tasks" className="rounded-lg border border-slate-600 px-4 py-2 text-sm text-slate-300 hover:bg-slate-800">
+              去做任务 →
+            </Link>
+          </>
+        }
+      />
 
       <section className="mb-6 grid gap-4 md:grid-cols-3">
         <div className="card border-cyan-900/40 bg-gradient-to-br from-cyan-950/40 to-slate-900/80">
@@ -469,29 +479,37 @@ export default function StatsPage() {
             {powerSeries.length === 0 && <p className="text-sm text-slate-500">暂无成长数据。</p>}
           </div>
         </section>
-        <section className="card">
-          <h2 className="mb-3 text-lg font-semibold text-slate-100">装备收集进度</h2>
-          <p className="text-sm text-slate-300">
-            已收集 <span className="font-semibold text-cyan-300">{equipmentProgress.owned}</span> / {equipmentProgress.total}
-          </p>
-          <div className="mt-2 h-2 rounded-full bg-slate-800">
-            <div
-              className="h-2 rounded-full bg-cyan-500"
-              style={{ width: `${Math.min(100, (equipmentProgress.owned / equipmentProgress.total) * 100)}%` }}
-            />
-          </div>
-        </section>
-        <section className="card">
-          <h2 className="mb-3 text-lg font-semibold text-slate-100">种族特性触发次数</h2>
-          <div className="space-y-1 text-xs text-slate-300">
-            {raceTriggerCounts.slice(0, 6).map(([k, v]) => (
-              <p key={k}>
-                {k}：<span className="text-cyan-300">{v}</span> 次
+        <details className="card lg:col-span-2 open:border-slate-600">
+          <summary className="cursor-pointer text-sm font-medium text-slate-300 hover:text-slate-100">
+            更多成长细节（装备收集、种族触发）
+          </summary>
+          <div className="mt-4 grid gap-6 md:grid-cols-2">
+            <div>
+              <h3 className="mb-2 text-sm font-semibold text-slate-200">装备收集进度</h3>
+              <p className="text-sm text-slate-300">
+                已收集 <span className="font-semibold text-cyan-300">{equipmentProgress.owned}</span> /{" "}
+                {equipmentProgress.total}
               </p>
-            ))}
-            {raceTriggerCounts.length === 0 && <p className="text-slate-500">暂无记录。</p>}
+              <div className="mt-2 h-2 rounded-full bg-slate-800">
+                <div
+                  className="h-2 rounded-full bg-cyan-500"
+                  style={{ width: `${Math.min(100, (equipmentProgress.owned / equipmentProgress.total) * 100)}%` }}
+                />
+              </div>
+            </div>
+            <div>
+              <h3 className="mb-2 text-sm font-semibold text-slate-200">种族特性触发</h3>
+              <div className="space-y-1 text-xs text-slate-300">
+                {raceTriggerCounts.slice(0, 8).map(([k, v]) => (
+                  <p key={k}>
+                    {k}：<span className="text-cyan-300">{v}</span> 次
+                  </p>
+                ))}
+                {raceTriggerCounts.length === 0 && <p className="text-slate-500">暂无记录。</p>}
+              </div>
+            </div>
           </div>
-        </section>
+        </details>
       </div>
     </AppShell>
   );

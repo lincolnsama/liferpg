@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { Lock } from "lucide-react";
 import { useEffect, useState } from "react";
 import AppShell from "@/components/app-shell";
+import { MvpPageHeader } from "@/components/mvp-page-header";
 import {
   CLASS_ICON,
   CLASS_LABEL,
@@ -12,7 +13,10 @@ import {
   UserProfile
 } from "@/lib/user-profile";
 import {
+  ensureSkillTreeProgress,
+  explainLastSkillUnlock,
   playSkillUnlockDing,
+  skillTreeNextStep,
   SKILL_TREES,
   SKILL_XP_THRESHOLDS,
   type SkillTreeDef
@@ -32,11 +36,12 @@ export default function SkillsPage() {
   const [flash, setFlash] = useState<FlashPayload | null>(null);
 
   useEffect(() => {
-    setUserProfile(loadUserProfile());
-    const raw = sessionStorage.getItem("skill-unlock-flash");
-    if (!raw) return;
+    const prof = loadUserProfile();
+    setUserProfile(prof ? ensureSkillTreeProgress(prof) : null);
+    const flashRaw = sessionStorage.getItem("skill-unlock-flash");
+    if (!flashRaw) return;
     try {
-      const data = JSON.parse(raw) as FlashPayload;
+      const data = JSON.parse(flashRaw) as FlashPayload;
       if (Date.now() - data.at > 20000) {
         sessionStorage.removeItem("skill-unlock-flash");
         return;
@@ -65,21 +70,86 @@ export default function SkillsPage() {
     );
   }
 
+  const secondaryProfession = userProfile
+    ? CLASS_TO_PROFESSION[userProfile.secondaryClass]
+    : null;
+  const primaryStep =
+    primaryProfession != null
+      ? skillTreeNextStep(
+          primaryProfession,
+          progress.professionXp[primaryProfession],
+          progress.unlockedTier[primaryProfession]
+        )
+      : null;
+  const secondaryStep =
+    secondaryProfession != null
+      ? skillTreeNextStep(
+          secondaryProfession,
+          progress.professionXp[secondaryProfession],
+          progress.unlockedTier[secondaryProfession]
+        )
+      : null;
+
+  const profSnippet = primaryProfession
+    ? `${CLASS_ICON[userProfile.primaryClass]} ${CLASS_LABEL[userProfile.primaryClass]}`
+    : "主职业（档案）";
+  const skillsDesc = `完成对应职业任务累计 XP 解锁节点；${profSnippet} 同系任务计入进度 ×1.5。`;
+
   return (
     <AppShell>
-      <section className="mb-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h2 className="text-xl font-semibold text-slate-100">技能树</h2>
-          <p className="mt-1 text-sm text-slate-400">
-            完成对应职业任务累计 XP 解锁节点；主职业{" "}
-            {primaryProfession && (
-              <span className="text-cyan-300">
-                {CLASS_ICON[userProfile.primaryClass]} {CLASS_LABEL[userProfile.primaryClass]}
-              </span>
-            )}{" "}
-            同职业任务计入进度 ×1.5
-          </p>
-        </div>
+      <MvpPageHeader title="技能树" description={skillsDesc} />
+
+      <section className="card mb-8 border-violet-500/25 bg-gradient-to-br from-violet-950/35 to-slate-900/80">
+        <h3 className="text-base font-semibold text-violet-100">本周可解释的成长</h3>
+        {progress.lastUnlock ? (
+          <p className="mt-2 text-sm leading-relaxed text-slate-300">{explainLastSkillUnlock(progress.lastUnlock)}</p>
+        ) : (
+          <p className="mt-2 text-sm text-slate-500">完成任意任务并开始累积职业 XP 后，这里会记录最近一次解锁了哪一层。</p>
+        )}
+        {primaryStep && primaryProfession && (
+          <div className="mt-4 rounded-lg border border-slate-700/80 bg-slate-950/50 p-3">
+            <p className="text-xs font-medium text-cyan-300/90">主职业 · 下一节点</p>
+            <p className="mt-1 text-sm text-slate-200">
+              {primaryStep.atCap
+                ? primaryStep.explanation
+                : `「${primaryStep.nextNodeName}」· ${primaryStep.explanation}`}
+            </p>
+            {!primaryStep.atCap && (
+              <div className="mt-2">
+                <div className="mb-1 flex justify-between text-[10px] text-slate-500">
+                  <span>
+                    {primaryStep.segmentStart} → {primaryStep.segmentEnd} XP
+                  </span>
+                  <span>{Math.round(primaryStep.progressRatio * 100)}%</span>
+                </div>
+                <div className="h-2 overflow-hidden rounded-full bg-slate-800">
+                  <div
+                    className="h-full rounded-full bg-gradient-to-r from-cyan-500 to-violet-500"
+                    style={{ width: `${Math.round(primaryStep.progressRatio * 100)}%` }}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+        {secondaryStep && secondaryProfession && (
+          <div className="mt-3 rounded-lg border border-slate-800 bg-slate-950/40 p-3">
+            <p className="text-xs font-medium text-slate-400">副职业 · 下一节点</p>
+            <p className="mt-1 text-xs leading-relaxed text-slate-400">
+              {secondaryStep.atCap ? secondaryStep.explanation : secondaryStep.explanation}
+            </p>
+            {!secondaryStep.atCap && (
+              <div className="mt-2">
+                <div className="h-1.5 overflow-hidden rounded-full bg-slate-800">
+                  <div
+                    className="h-full rounded-full bg-slate-600"
+                    style={{ width: `${Math.round(secondaryStep.progressRatio * 100)}%` }}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </section>
 
       <div className="space-y-8">
