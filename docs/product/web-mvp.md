@@ -31,14 +31,14 @@ MBTI、星座、出生日期、学历和身体数据应该被表达为“记录�
 
 推荐流程：
 
-1. 序章：现实锚点  
-   输入冒险者称号、出生日期、人生阶段、现实职业、学历、MBTI，并自动推导星座。
-2. 第二幕：出身与节律  
-   选择高能量时段、完成重要任务的偏好，并可选记录身高体重，生成初始种族/背景特性。
-3. 第三幕：第一章主线  
-   选择当前最想改变的方向，写下当前困境和想成为的人。
-4. 角色确认  
-   系统生成主副职业、初始画像、匹配度、第一章主线摘要，允许用户接受推荐或手动调整。
+1. 序章：现实锚点
+  输入冒险者称号、出生日期、人生阶段、现实职业、学历、MBTI，并自动推导星座。
+2. 第二幕：出身与节律
+  选择高能量时段、完成重要任务的偏好，并可选记录身高体重，生成初始种族/背景特性。
+3. 第三幕：第一章主线
+  选择当前最想改变的方向，写下当前困境和想成为的人。
+4. 角色确认
+  系统生成主副职业、初始画像、匹配度、第一章主线摘要，允许用户接受推荐或手动调整。
 
 完成后进入首页或晨间加载。后续可以把这张冒险者档案作为长期成长页面的一部分，让用户在数月后回看“第一章从哪里开始”。
 
@@ -122,28 +122,30 @@ MVP 打磨重点：长期成长页面应从“功能集合”收束为“成长�
 
 ## 现有功能审计
 
-| 页面或模块 | 当前作用 | MVP 状态 | 处理建议 |
-| --- | --- | --- | --- |
-| `src/app/onboarding/page.tsx` | 建立昵称、现实职业、节律、目标、主副职业和虚拟角色 | 保留并打磨 | 作为新用户角色创建入口；补充“当前困境/想成为的人”等北极星字段 |
-| `src/app/morning-load/page.tsx` | 晨间仪式、今日运势、种族特性、昨日封存提醒 | 保留并打磨 | 接入今日主线选择；减少纯展示，强化下一步 |
-| `src/app/page.tsx` | 首页、档案、睡前入口、活跃/完成任务、队友侧栏 | 保留并打磨 | 改成每日指挥中心，突出“今日主线”和下一步行动 |
-| `src/app/tasks/page.tsx` | 创建任务、专注/记录模式、探索、结算、奖励 | 保留并重点打磨 | 作为 MVP 核心执行页；拆清创建、执行、结算状态 |
-| `src/app/night-save/page.tsx` | 夜间封存、证书、复盘入口 | 保留并重点打磨 | 成为每日闭环终点；写入每日日志 |
-| `src/app/skills/page.tsx` | 职业技能树与 XP 解锁 | 保留 | 展示长期成长证据，避免变成复杂养成系统 |
-| `src/app/stats/page.tsx` | 热力图、职业分布、等级趋势、预测、收支 | 保留但收敛 | 第一阶段保留核心趋势，次要图表后置 |
-| `src/app/journal/page.tsx` | 日志和生活记录 | 保留并打磨 | 与夜间存档和冒险战报合并为统一记录体验 |
-| `src/app/adventure-log/page.tsx` | 冒险事件和战报 | 保留 | 作为任务完成叙事的时间线，不单独承担主导航入口 |
-| `src/app/profession/page.tsx` | 职业展示或选择 | 保留但收敛 | 与 onboarding 和技能树联动，避免重复页面 |
-| `src/app/epic-quests/page.tsx` | 长期史诗任务 | 后置打磨 | 数据迁移到 Supabase 后再强化 |
-| `src/app/weekly/page.tsx` | 周常挑战 | 后置 | 第一阶段只保留轻量周总结，不让周常抢主循环 |
-| `src/app/focus/page.tsx` | 独立专注视觉页 | 后置打磨 | 先统一任务页执行体验，之后再做沉浸专注屏 |
-| `src/app/adventure/page.tsx` | 独立文字 RPG 冒险 | 后置 | 保留为实验玩法；不要影响真实任务闭环 |
-| `src/app/shop/page.tsx`、`src/app/inventory/page.tsx` | 装备、背包、购买、使用 | 后置 | 保留奖励价值，但限制复杂经济和数值膨胀 |
-| `src/app/collection/page.tsx` | 外观收藏 | 后置 | 作为成就展示补充，非 MVP 核心 |
-| `src/components/teammate-sidebar.tsx`、`src/lib/ai-teammate.ts` | AI 队友陪伴与提醒 | 后置 | 先作为首页轻陪伴，不作为核心决策依赖 |
-| `src/lib/daily-log.ts`、`src/lib/night-seal.ts` | 日志、封存、周报、里程碑 | 保留并重点打磨 | 迁移核心日志到 Supabase，保留本地草稿 |
-| `src/lib/user-profile.ts` | 本地角色画像和虚拟角色 | 保留但迁移 | 与 Supabase `profiles` 合并为角色档案来源 |
-| `src/lib/long-term-quests.ts`、`src/hooks/useLongTermQuests.ts` | 史诗任务、周常、本地长期进度 | 后置并迁移 | 先设计数据模型，再恢复体验 |
+
+| 页面或模块                                                          | 当前作用                      | MVP 状态  | 处理建议                             |
+| -------------------------------------------------------------- | ------------------------- | ------- | -------------------------------- |
+| `src/app/onboarding/page.tsx`                                  | 建立昵称、现实职业、节律、目标、主副职业和虚拟角色 | 保留并打磨   | 作为新用户角色创建入口；补充“当前困境/想成为的人”等北极星字段 |
+| `src/app/morning-load/page.tsx`                                | 晨间仪式、今日运势、种族特性、昨日封存提醒     | 保留并打磨   | 接入今日主线选择；减少纯展示，强化下一步             |
+| `src/app/page.tsx`                                             | 首页、档案、睡前入口、活跃/完成任务、队友侧栏   | 保留并打磨   | 改成每日指挥中心，突出“今日主线”和下一步行动          |
+| `src/app/tasks/page.tsx`                                       | 创建任务、专注/记录模式、探索、结算、奖励     | 保留并重点打磨 | 作为 MVP 核心执行页；拆清创建、执行、结算状态        |
+| `src/app/night-save/page.tsx`                                  | 夜间封存、证书、复盘入口              | 保留并重点打磨 | 成为每日闭环终点；写入每日日志                  |
+| `src/app/skills/page.tsx`                                      | 职业技能树与 XP 解锁              | 保留      | 展示长期成长证据，避免变成复杂养成系统              |
+| `src/app/stats/page.tsx`                                       | 热力图、职业分布、等级趋势、预测、收支       | 保留但收敛   | 第一阶段保留核心趋势，次要图表后置                |
+| `src/app/journal/page.tsx`                                     | 日志和生活记录                   | 保留并打磨   | 与夜间存档和冒险战报合并为统一记录体验              |
+| `src/app/adventure-log/page.tsx`                               | 冒险事件和战报                   | 保留      | 作为任务完成叙事的时间线，不单独承担主导航入口          |
+| `src/app/profession/page.tsx`                                  | 职业展示或选择                   | 保留但收敛   | 与 onboarding 和技能树联动，避免重复页面       |
+| `src/app/epic-quests/page.tsx`                                 | 长期史诗任务                    | 后置打磨    | 数据迁移到 Supabase 后再强化              |
+| `src/app/weekly/page.tsx`                                      | 周常挑战                      | 后置      | 第一阶段只保留轻量周总结，不让周常抢主循环            |
+| `src/app/focus/page.tsx`                                       | 独立专注视觉页                   | 后置打磨    | 先统一任务页执行体验，之后再做沉浸专注屏             |
+| `src/app/adventure/page.tsx`                                   | 独立文字 RPG 冒险               | 后置      | 保留为实验玩法；不要影响真实任务闭环               |
+| `src/app/shop/page.tsx`、`src/app/inventory/page.tsx`           | 装备、背包、购买、使用               | 后置      | 保留奖励价值，但限制复杂经济和数值膨胀              |
+| `src/app/collection/page.tsx`                                  | 外观收藏                      | 后置      | 作为成就展示补充，非 MVP 核心                |
+| `src/components/teammate-sidebar.tsx`、`src/lib/ai-teammate.ts` | AI 队友陪伴与提醒                | 后置      | 先作为首页轻陪伴，不作为核心决策依赖               |
+| `src/lib/daily-log.ts`、`src/lib/night-seal.ts`                 | 日志、封存、周报、里程碑              | 保留并重点打磨 | 迁移核心日志到 Supabase，保留本地草稿          |
+| `src/lib/user-profile.ts`                                      | 本地角色画像和虚拟角色               | 保留但迁移   | 与 Supabase `profiles` 合并为角色档案来源  |
+| `src/lib/long-term-quests.ts`、`src/hooks/useLongTermQuests.ts` | 史诗任务、周常、本地长期进度            | 后置并迁移   | 先设计数据模型，再恢复体验                    |
+
 
 暂不建议删除现有页面。MVP 阶段应通过导航权重和数据迁移来收束，而不是急着移除实验功能。真正可废弃的内容需要等每日闭环稳定后，再依据使用价值判断。
 
@@ -159,17 +161,17 @@ MVP 打磨重点：长期成长页面应从“功能集合”收束为“成长�
 
 范围：
 
-- [x] 首页改造成每日指挥中心：显示今日状态、今日主线、下一步行动、夜间封存入口。（`src/app/page.tsx` + `src/lib/daily-loop-state.ts` / `daily-loop-events.ts`）
-- [x] 晨间加载增加今日主线选择或跳转任务选择的明确入口；支持晨间已完成后 **`/morning-load?pickMain=1`** 仅补选主线。（`morning-load/page.tsx`）
-- [x] 任务页收敛创建流程，优先支持一个主线任务和若干支线/日常任务。（`task_track` + 创建前三档 + `?mode=quick` 默认主线）
-- [x] 完成结算统一写入任务完成、XP、晶石、**奖励流水** `reward_events`、最近完成。（`execute-task-completion.ts`）
-- [x] 夜间封存写入 **Supabase `daily_logs`**（与本地 IndexedDB 并存）；本地生成每日日志与封存记录不变。（`night-save` + `batch1-supabase-sync.ts`）
-- [x] 今日主线 / 推进等写入 **`profiles.day_loop_cache`** 并首页/任务页水合，减轻换设备丢主线。（`batch1-supabase-sync.ts`）
+- 首页改造成每日指挥中心：显示今日状态、今日主线、下一步行动、夜间封存入口。（`src/app/page.tsx` + `src/lib/daily-loop-state.ts` / `daily-loop-events.ts`）
+- 晨间加载增加今日主线选择或跳转任务选择的明确入口；支持晨间已完成后 `**/morning-load?pickMain=1`** 仅补选主线。（`morning-load/page.tsx`）
+- 任务页收敛创建流程，优先支持一个主线任务和若干支线/日常任务。（`task_track` + 创建前三档 + `?mode=quick` 默认主线）
+- 完成结算统一写入任务完成、XP、晶石、**奖励流水** `reward_events`、最近完成。（`execute-task-completion.ts`）
+- 夜间封存写入 **Supabase `daily_logs`**（与本地 IndexedDB 并存）；本地生成每日日志与封存记录不变。（`night-save` + `batch1-supabase-sync.ts`）
+- 今日主线 / 推进等写入 `**profiles.day_loop_cache**` 并首页/任务页水合，减轻换设备丢主线。（`batch1-supabase-sync.ts`）
 
 验收：
 
 - [~] 新用户完成 onboarding 后能顺畅进入首页和晨间仪式。（依赖现有 `onboarding` 与路由；未做专项 E2E 报告）
-- [x] 老用户每天至少能完成一次「晨间 → 任务 → 奖励 → 夜间」的完整循环。（产品路径已通；仍依赖用户实际使用）
+- 老用户每天至少能完成一次「晨间 → 任务 → 奖励 → 夜间」的完整循环。（产品路径已通；仍依赖用户实际使用）
 - [~] 刷新页面或换设备后，核心进度不丢失。（**已上云**：`tasks`、`profiles`（xp/crystals）、`reward_events`、`daily_logs`（封存日）、`day_loop_cache`（今日主线等）；**仍以本机为主或未迁移**：完整 `userProfile`/虚拟角色、IndexedDB 主日志、晨间 `lastMorningLoad` 等 UI hint）
 
 **依赖**：在 Supabase 执行 `supabase/schema.sql` 中 Batch 1 相关增量（`reward_events`、`daily_logs`、`task_track`、`day_loop_cache` 及 RLS）。
@@ -184,16 +186,16 @@ MVP 打磨重点：长期成长页面应从“功能集合”收束为“成长�
 
 范围：
 
-- [x] 技能进度从任务完成中稳定累积（既有逻辑），展示**最近解锁**与**下一节点**文案与进度条。（`skill-tree.ts`：`skillTreeNextStep`、`explainLastSkillUnlock`；`skills/page.tsx`）
-- [x] 日志页整合夜间封存摘录、冒险时间轴、手动里程碑；**合并** Supabase 已封存 `daily_logs` 与本地日志。（`journal/page.tsx` + `daily-logs-merge.ts`）
-- [x] 统计页优先本周叙事、热力、职业分布、等级趋势、晶石与战力曲线；次要指标收入 **`<details>`**。（`stats/page.tsx` + `growth-narrative.ts`）
-- [x] 史诗任务和周常只保留轻量入口（侧栏「更多」小字链）。（`sidebar.tsx`）
+- 技能进度从任务完成中稳定累积（既有逻辑），展示**最近解锁**与**下一节点**文案与进度条。（`skill-tree.ts`：`skillTreeNextStep`、`explainLastSkillUnlock`；`skills/page.tsx`）
+- 日志页整合夜间封存摘录、冒险时间轴、手动里程碑；**合并** Supabase 已封存 `daily_logs` 与本地日志。（`journal/page.tsx` + `daily-logs-merge.ts`）
+- 统计页优先本周叙事、热力、职业分布、等级趋势、晶石与战力曲线；次要指标收入 `**<details>`**。（`stats/page.tsx` + `growth-narrative.ts`）
+- 史诗任务和周常只保留轻量入口（侧栏「更多」小字链）。（`sidebar.tsx`）
 
 验收：
 
-- [x] 用户能解释「我这周为什么升级/解锁了某个技能」。（技能页「成长证据」+ 统计预测区 + 数据页链到日志）
-- [x] 夜间封存不只是图片或证书，而能成为可回看的生活记录。（`daily_logs` + 日志页「夜间封存摘录」+ 合并列表）
-- [x] 低能量日、失败任务和重新开始都有温和叙事。（`growth-narrative.ts`：日志空状态、统计顶部叙事）
+- 用户能解释「我这周为什么升级/解锁了某个技能」。（技能页「成长证据」+ 统计预测区 + 数据页链到日志）
+- 夜间封存不只是图片或证书，而能成为可回看的生活记录。（`daily_logs` + 日志页「夜间封存摘录」+ 合并列表）
+- 低能量日、失败任务和重新开始都有温和叙事。（`growth-narrative.ts`：日志空状态、统计顶部叙事）
 
 ---
 
@@ -205,23 +207,26 @@ MVP 打磨重点：长期成长页面应从“功能集合”收束为“成长�
 
 范围：
 
-- [x] 主导航按每日循环组织：今日、任务、记录、成长、奖励/收藏。（`src/components/sidebar.tsx`）
-- [x] 统一核心卡片与页面标题层级（`.card`、`.mvp-page-title` / `.mvp-page-desc`、`MvpPageHeader`）；奖励弹层与空状态文案仍以既有实现为主，未做全量替换。
-- [x] 将后置功能降权：商店、背包、独立冒险、收藏、周常不抢首页主路径。（奖励组侧栏弱对比链 + 「更多」收纳实验玩法）
-- [x] 保留视觉仪式感，但减少与完成现实行动无关的干扰。（夜间封存等仪式页保留独立视觉，仅标题层级对齐）
+- 主导航按每日循环组织：今日、任务、记录、成长、奖励/收藏。（`src/components/sidebar.tsx`）
+- 统一核心卡片与页面标题层级（`.card`、`.mvp-page-title` / `.mvp-page-desc`、`MvpPageHeader`）；奖励弹层与空状态文案仍以既有实现为主，未做全量替换。
+- 将后置功能降权：商店、背包、独立冒险、收藏、周常不抢首页主路径。（奖励组侧栏弱对比链 + 「更多」收纳实验玩法）
+- 保留视觉仪式感，但减少与完成现实行动无关的干扰。（夜间封存等仪式页保留独立视觉，仅标题层级对齐）
 
 验收：
 
-- [x] 用户不用理解所有 RPG 系统，也能知道今天该点哪里。（侧栏分组 + 指挥室晨间优先）
-- [x] MVP 核心页面视觉语言一致。（卡片与页头组件化）
-- [x] 后置玩法存在但不打断每日闭环。（更多区 + 非主导色链）
+- 用户不用理解所有 RPG 系统，也能知道今天该点哪里。（侧栏分组 + 指挥室晨间优先）
+- MVP 核心页面视觉语言一致。（卡片与页头组件化）
+- 后置玩法存在但不打断每日闭环。（更多区 + 非主导色链）
 
 ---
 
 ### 批次总览（快速核对）
 
-| 批次 | 结论 |
-| --- | --- |
+
+| 批次      | 结论                           |
+| ------- | ---------------------------- |
 | Batch 1 | **基本完成**；数据库需已部署；角色档案全量上云属后续 |
-| Batch 2 | **已完成**；技能树数据仍以本地为主 |
-| Batch 3 | **已完成** |
+| Batch 2 | **已完成**；技能树数据仍以本地为主          |
+| Batch 3 | **已完成**                      |
+
+
